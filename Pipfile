@@ -10,6 +10,9 @@ neo4j = "*"
 jupyter = "*"
 
 [dev-packages]
+rope = "*"
+yapf = "*"
+ipykernel = "*"
 
 [requires]
 python_version = "3.8"
