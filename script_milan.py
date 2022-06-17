@@ -189,4 +189,34 @@ def query_for_use_case_1(conn: Neo4jConnection, post_title: str):
    return conn.query(query)
 query_for_use_case_1(conn, 'backprop')
 
+#%%
+def query_for_use_case_2(conn: Neo4jConnection, post_title: str):
+   query = '''
+    MATCH (post1:Post)
+    WHERE post1.title CONTAINS "''' + post_title + '''"
+    MATCH (post1)-[:REFERENCES]->(paper1:Paper)
 
+    WITH paper1
+    OPTIONAL MATCH (paper1)-[:REFERENCES]->(paper2: Paper)
+    OPTIONAL MATCH (author: Author)-[:AUTHORED]->(paper1)
+
+    WITH author, paper1, paper2
+    OPTIONAL MATCH (author)-[:AUTHORED]->(paper3: Paper)
+    RETURN paper1, paper2, paper3
+   '''
+   return conn.query(query)
+
+query_for_use_case_2(conn, 'backprop')
+
+#%%
+def query_for_use_case_3(conn: Neo4jConnection, paper_title: str):
+   query = '''
+    MATCH (paper:Paper)
+    WHERE paper.title CONTAINS "''' + paper_title + '''"
+    MATCH (post:Post)-[:REFERENCES]->(paper:Paper)
+    RETURN post
+   '''
+   return conn.query(query)
+query_for_use_case_3(conn, 'backprop')
+
+# %%
