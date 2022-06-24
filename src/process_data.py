@@ -15,24 +15,28 @@ def batched(iterable, batch_size):
 
 def insert_data(conn: Neo4jConnection, query: str, record_iterator: Iterator[dict], batch_size=100, total=None) -> dict:
     """Run query on batched records from an iterator."""
-    total = 0
+    total_in = 0
+    total_out = 0
     batch = 0
+    res = None
     start = time.time()
-    result = {}
+    
     num_batches = total // batch_size + 1 if total is not None else None
+    print("Start query...")
     for i, batch in tqdm(enumerate(batched(record_iterator, batch_size)), total=num_batches):
-        batch_start = time.time()
+        total_in += len(batch)
         res = conn.query(query,
                          parameters = {'rows': batch})
         try:
-            total += res[0]['total'] # TODO: use or remove
-        except KeyError:
-            pass
-        result = {"batch_size": batch_size,
-                  "batches_done": i,
-                  "batch_time": time.time() - batch_start,
-                  "total_time": time.time()-start}
-    return result
+            total_out += res[0]['total'] # TODO: use or remove
+        except Exception:
+            total_out -=1
+        
+    print("Total_time:              ", time.time()-start)
+    print("Total input:             ", total_in)
+    print("Total out (if supported): ", total_out)
+    
+    return res
 
 # %% [markdown]
 # # Load stackexchange XML
@@ -44,7 +48,7 @@ import xml.etree.ElementTree as ET
 from typing import Generator, Iterator, List
 
 
-def iter_parse_stackexchange(board: str, table: str) -> Generator[dict, None, None]:
+def iter_parse_stackexchange(board: str, table: str, max_num=None) -> Generator[dict, None, None]:
     """_summary_
 
     Args:
@@ -62,7 +66,9 @@ def iter_parse_stackexchange(board: str, table: str) -> Generator[dict, None, No
     # Load xml file
     path = f"data/{board}/{table}.xml"
     root = ET.iterparse(path)
-    for event, child in root:
+    for i, (event, child) in enumerate(root):
+        if max_num is not None and i >= max_num:
+            return
         if child.tag =='row':
             record = child.attrib
             if "Body" in record: # for posts
